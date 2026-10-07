@@ -6,9 +6,8 @@
 
 ## ✨ Fitur Utama
 
-- **Ringkasan Metrik (*Stat Cards*)**: Menampilkan total kegiatan, kegiatan yang telah selesai (dengan persentase progres), dan kegiatan yang sedang berjalan menggunakan kartu bergaris aksen warna.
-- **Formulir Rencana Kegiatan**: Menambahkan rencana kegiatan baru dengan tanggal dan pilihan prioritas (*High, Medium, Low*).
-- **Ceklis Status Selesai**: Menandai kegiatan yang sudah rampung dengan tombol ceklis (otomatis memberikan efek coret teks dan memperbarui status kalender).
-- **Pembatalan / Hapus Kegiatan**: Menghapus agenda kegiatan yang batal dilaksanakan disertai dialog konfirmasi.
-- **Kalender Visual Bulanan**: Grid kalender berbasis Matriks/Array 2D (Minggu × Hari) yang langsung menempelkan label kegiatan pada tanggal yang sesuai.
-- **Kompatibel dengan Vercel**: Dilengkapi arsitektur *Serverless Function* sehingga dapat diakses secara publik melalui domain `https://*.vercel.app`.
+- Menampilkan total kegiatan, kegiatan yang telah selesai (dengan persentase progres), dan kegiatan yang sedang berjalan menggunakan kartu bergaris aksen warna.
+- Menambahkan rencana kegiatan baru dengan tanggal dan pilihan prioritas (*High, Medium, Low*).
+- Menandai kegiatan yang sudah rampung dengan tombol ceklis (otomatis memberikan efek coret teks dan memperbarui status kalender).
+- Menghapus agenda kegiatan yang batal dilaksanakan disertai dialog konfirmasi.
+- Grid kalender berbasis Matriks/Array 2D (Minggu × Hari) yang langsung menempelkan label kegiatan pada tanggal yang sesuai.
