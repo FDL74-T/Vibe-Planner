@@ -11,8 +11,10 @@ import os
 APP_NAME: str = "VibePlanner"
 PORT: int = int(os.environ.get("PORT", 8000))
 
-# In-memory storage list
-activities: list[dict] = [
+# Berkas penyimpanan permanen (menggunakan /tmp di lingkungan Vercel)
+STORAGE_FILE = "/tmp/activities_data.json" if os.environ.get("VERCEL") else "activities_data.json"
+
+DEFAULT_ACTIVITIES: list[dict] = [
     {
         "id": 1,
         "title": "Review Algoritma & Flowchart",
@@ -37,7 +39,32 @@ activities: list[dict] = [
 ]
 
 # ==============================================================================
-# 2. LOGIKA & FUNCTIONS PYTHON
+# 2. FILE HANDLING (Penyimpanan Berkas JSON)
+# ==============================================================================
+def load_activities() -> list[dict]:
+    """Membaca data kegiatan dari berkas JSON."""
+    if os.path.exists(STORAGE_FILE):
+        try:
+            with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return DEFAULT_ACTIVITIES.copy()
+    return DEFAULT_ACTIVITIES.copy()
+
+
+def save_activities(items: list[dict]) -> None:
+    """Menulis data kegiatan ke berkas JSON."""
+    try:
+        with open(STORAGE_FILE, "w", encoding="utf-8") as f:
+            json.dump(items, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving to file: {e}")
+
+
+activities: list[dict] = load_activities()
+
+# ==============================================================================
+# 3. LOGIKA & FUNCTIONS PYTHON
 # ==============================================================================
 def calculate_metrics(items: list[dict]) -> dict:
     total: int = len(items)
@@ -57,15 +84,16 @@ def calculate_metrics(items: list[dict]) -> dict:
 
 
 def generate_calendar_matrix(year: int, month: int) -> list[list[int]]:
+    """Membuat matriks Array 2D kalender."""
     cal = calendar.Calendar(firstweekday=0)
     return cal.monthdayscalendar(year, month)
 
 
-def get_calendar_payload(year: int, month: int) -> dict:
+def get_calendar_payload(items: list[dict], year: int, month: int) -> dict:
     matrix = generate_calendar_matrix(year, month)
     activities_by_date = {}
 
-    for act in activities:
+    for act in items:
         d = act["date"]
         if d not in activities_by_date:
             activities_by_date[d] = []
@@ -80,22 +108,6 @@ def get_calendar_payload(year: int, month: int) -> dict:
     }
 
 
-def toggle_activity_status(act_id: int) -> bool:
-    for act in activities:
-        if act["id"] == act_id:
-            act["completed"] = not act["completed"]
-            return True
-    return False
-
-
-def delete_activity(act_id: int) -> bool:
-    for index, act in enumerate(activities):
-        if act["id"] == act_id:
-            activities.pop(index)
-            return True
-    return False
-
-
 def find_static_file(filename: str) -> str:
     if os.path.exists(filename):
         return filename
@@ -106,7 +118,7 @@ def find_static_file(filename: str) -> str:
 
 
 # ==============================================================================
-# 3. SERVERLESS REQUEST HANDLER
+# 4. SERVERLESS REQUEST HANDLER
 # ==============================================================================
 class handler(BaseHTTPRequestHandler):
     def send_json(self, data: dict, status: int = 200):
@@ -132,19 +144,21 @@ class handler(BaseHTTPRequestHandler):
         clean_path = parsed_url.path
         query_params = urllib.parse.parse_qs(parsed_url.query)
 
-        # 1. API: Mengambil data kegiatan dan kalender dinamis per bulan
+        # 1. API: Data & Kalender Bulanan
         if clean_path in ("/api/data", "/api/data/"):
+            global activities
+            activities = load_activities()
             year = int(query_params.get("year", [2026])[0])
             month = int(query_params.get("month", [10])[0])
 
             payload = {
                 "metrics": calculate_metrics(activities),
-                "calendar": get_calendar_payload(year=year, month=month),
+                "calendar": get_calendar_payload(activities, year=year, month=month),
                 "activities": activities
             }
             self.send_json(payload)
 
-        # 2. File statis untuk pengujian lokal
+        # 2. File Statis untuk Pengujian Lokal
         elif clean_path in ("/", "/index.html"):
             self.serve_file("index.html", "text/html")
         elif clean_path == "/style.css":
@@ -157,46 +171,33 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         clean_path = urllib.parse.urlparse(self.path).path
+        query_params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         content_length = int(self.headers.get("Content-Length", 0))
         raw_body = self.rfile.read(content_length).decode("utf-8")
 
         data = {}
-        if self.headers.get("Content-Type", "").startswith("application/json"):
-            try:
-                data = json.loads(raw_body)
-            except Exception:
-                data = {}
-        else:
-            parsed = urllib.parse.parse_qs(raw_body)
-            data = {k: v[0] for k, v in parsed.items()}
+        try:
+            data = json.loads(raw_body)
+        except Exception:
+            data = {}
 
-        if clean_path.endswith("/api/add") or clean_path == "/add":
-            title = data.get("title", "").strip()
-            date = data.get("date", "").strip()
-            priority = data.get("priority", "Medium").strip()
+        global activities
 
-            if title and date:
-                next_id = max([act["id"] for act in activities], default=0) + 1
-                activities.append({
-                    "id": next_id,
-                    "title": title,
-                    "date": date,
-                    "priority": priority,
-                    "completed": False
-                })
-                self.send_json({"success": True})
-            else:
-                self.send_json({"error": "Data tidak lengkap"}, status=400)
+        # Endpoint Sinkronisasi Auto-Save
+        if clean_path.endswith("/api/sync") or clean_path == "/sync":
+            new_activities = data.get("activities", [])
+            activities = new_activities
+            save_activities(activities)
 
-        elif clean_path.endswith("/api/toggle") or clean_path == "/toggle":
-            act_id = int(data.get("id", 0))
-            success = toggle_activity_status(act_id)
-            self.send_json({"success": success})
+            year = int(query_params.get("year", [2026])[0])
+            month = int(query_params.get("month", [10])[0])
 
-        elif clean_path.endswith("/api/delete") or clean_path == "/delete":
-            act_id = int(data.get("id", 0))
-            success = delete_activity(act_id)
-            self.send_json({"success": success})
+            payload = {
+                "metrics": calculate_metrics(activities),
+                "calendar": get_calendar_payload(activities, year=year, month=month),
+                "activities": activities
+            }
+            self.send_json(payload)
 
         else:
             self.send_response(404)
