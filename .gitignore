@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Lingkungan virtual (Virtual Environments)
+venv/
+.venv/
+env/
+ENV/
+
+# Berkas konfigurasi editor & IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Berkas sistem operasi
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Konfigurasi lingkungan & log
+.env
+*.log
