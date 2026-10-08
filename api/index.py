@@ -6,12 +6,12 @@ import urllib.parse
 import os
 
 # ==============================================================================
-# 1. VARIABEL & STRUKTUR DATA
+# 1. VARIABEL & DATA
 # ==============================================================================
 APP_NAME: str = "VibePlanner"
 PORT: int = int(os.environ.get("PORT", 8000))
 
-# In-memory List 1D of Dictionaries
+# In-memory storage list
 activities: list[dict] = [
     {
         "id": 1,
@@ -37,10 +37,9 @@ activities: list[dict] = [
 ]
 
 # ==============================================================================
-# 2. FUNCTIONS & LOGIKA ALGORITMA
+# 2. LOGIKA & FUNCTIONS PYTHON
 # ==============================================================================
 def calculate_metrics(items: list[dict]) -> dict:
-    """Menghitung metrik progres kegiatan."""
     total: int = len(items)
     if total == 0:
         return {"total": 0, "completed": 0, "pending": 0, "progress": 0.0}
@@ -58,13 +57,11 @@ def calculate_metrics(items: list[dict]) -> dict:
 
 
 def generate_calendar_matrix(year: int, month: int) -> list[list[int]]:
-    """Array 2D (Minggu x Hari) kalender."""
     cal = calendar.Calendar(firstweekday=0)
     return cal.monthdayscalendar(year, month)
 
 
-def get_calendar_payload(year: int = 2026, month: int = 10) -> dict:
-    """Menyusun representasi data Array 2D kalender dan pemetaan kegiatan."""
+def get_calendar_payload(year: int, month: int) -> dict:
     matrix = generate_calendar_matrix(year, month)
     activities_by_date = {}
 
@@ -84,7 +81,6 @@ def get_calendar_payload(year: int = 2026, month: int = 10) -> dict:
 
 
 def toggle_activity_status(act_id: int) -> bool:
-    """Toggle status selesai (True <-> False)."""
     for act in activities:
         if act["id"] == act_id:
             act["completed"] = not act["completed"]
@@ -93,7 +89,6 @@ def toggle_activity_status(act_id: int) -> bool:
 
 
 def delete_activity(act_id: int) -> bool:
-    """Menghapus elemen dari list."""
     for index, act in enumerate(activities):
         if act["id"] == act_id:
             activities.pop(index)
@@ -101,11 +96,7 @@ def delete_activity(act_id: int) -> bool:
     return False
 
 
-# ==============================================================================
-# 3. HELPER: PENANGANAN FILE STATIS (Untuk Server Lokal)
-# ==============================================================================
 def find_static_file(filename: str) -> str:
-    """Mencari lokasi berkas statis (root atau parent)."""
     if os.path.exists(filename):
         return filename
     parent_path = os.path.join(os.path.dirname(__file__), "..", filename)
@@ -115,7 +106,7 @@ def find_static_file(filename: str) -> str:
 
 
 # ==============================================================================
-# 4. SERVERLESS REQUEST HANDLER
+# 3. SERVERLESS REQUEST HANDLER
 # ==============================================================================
 class handler(BaseHTTPRequestHandler):
     def send_json(self, data: dict, status: int = 200):
@@ -137,18 +128,23 @@ class handler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_GET(self):
-        clean_path = urllib.parse.urlparse(self.path).path
+        parsed_url = urllib.parse.urlparse(self.path)
+        clean_path = parsed_url.path
+        query_params = urllib.parse.parse_qs(parsed_url.query)
 
-        # 1. Endpoint API JSON: Mengirimkan Data State ke JavaScript
+        # 1. API: Mengambil data kegiatan dan kalender dinamis per bulan
         if clean_path in ("/api/data", "/api/data/"):
+            year = int(query_params.get("year", [2026])[0])
+            month = int(query_params.get("month", [10])[0])
+
             payload = {
                 "metrics": calculate_metrics(activities),
-                "calendar": get_calendar_payload(year=2026, month=10),
+                "calendar": get_calendar_payload(year=year, month=month),
                 "activities": activities
             }
             self.send_json(payload)
 
-        # 2. Handler Statis untuk Pengujian Lokal
+        # 2. File statis untuk pengujian lokal
         elif clean_path in ("/", "/index.html"):
             self.serve_file("index.html", "text/html")
         elif clean_path == "/style.css":
@@ -164,7 +160,6 @@ class handler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get("Content-Length", 0))
         raw_body = self.rfile.read(content_length).decode("utf-8")
 
-        # Parsing Payload (JSON atau Form Data)
         data = {}
         if self.headers.get("Content-Type", "").startswith("application/json"):
             try:
@@ -175,7 +170,6 @@ class handler(BaseHTTPRequestHandler):
             parsed = urllib.parse.parse_qs(raw_body)
             data = {k: v[0] for k, v in parsed.items()}
 
-        # 1. Endpoint Tambah Kegiatan
         if clean_path.endswith("/api/add") or clean_path == "/add":
             title = data.get("title", "").strip()
             date = data.get("date", "").strip()
@@ -194,13 +188,11 @@ class handler(BaseHTTPRequestHandler):
             else:
                 self.send_json({"error": "Data tidak lengkap"}, status=400)
 
-        # 2. Endpoint Ceklis (Toggle Status Selesai)
         elif clean_path.endswith("/api/toggle") or clean_path == "/toggle":
             act_id = int(data.get("id", 0))
             success = toggle_activity_status(act_id)
             self.send_json({"success": success})
 
-        # 3. Endpoint Hapus Kegiatan
         elif clean_path.endswith("/api/delete") or clean_path == "/delete":
             act_id = int(data.get("id", 0))
             success = delete_activity(act_id)
