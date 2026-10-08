@@ -1,15 +1,18 @@
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / cache Python
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Lingkungan virtual (Virtual Environments)
+# Direktori Vercel (jika menggunakan Vercel CLI)
+.vercel/
+
+# Lingkungan virtual (Virtual Environment)
 venv/
 .venv/
 env/
 ENV/
 
-# Berkas konfigurasi editor & IDE
+# Berkas editor & IDE
 .vscode/
 .idea/
 *.swp
@@ -20,6 +23,7 @@ ENV/
 Thumbs.db
 desktop.ini
 
-# Konfigurasi lingkungan & log
+# Berkas konfigurasi lingkungan lokal & log
 .env
+.env.local
 *.log
