@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibePlanner - Calendar & Task Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="wrapper">
+        
+        <header class="header-bar">
+            <div class="brand-wrapper">
+                <div class="brand-icon"></div>
+                <h1 class="header-title">VibePlanner</h1>
+            </div>
+            <div id="headerDate" class="header-date">Memuat tanggal...</div>
+        </header>
+
+        <section class="stat-grid">
+            <div class="stat-card teal">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Total kegiatan</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-value" id="statCompleted">0</div>
+                <div class="stat-label" id="statProgressLabel">Selesai (0%)</div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-value" id="statPending">0</div>
+                <div class="stat-label">Sedang berjalan / belum</div>
+            </div>
+        </section>
+      
+        <div class="content-grid">
+            <section class="card-panel">
+                <h2 class="panel-title">Tambah Kegiatan Baru</h2>
+                <form id="addActivityForm">
+                    <div class="form-group">
+                        <label for="title">Nama Kegiatan</label>
+                        <input type="text" id="title" required placeholder="Contoh: Belajar Algoritma & Flowchart">
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Tanggal Kegiatan (Bisa klik tanggal di kalender)</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Tingkat Prioritas</label>
+                        <select id="priority">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary" id="btnSubmit">+ Simpan Kegiatan</button>
+                </form>
+            </section>
+
+            <section class="card-panel">
+                <h2 class="panel-title" id="calendarTitle">Kalender Bulanan</h2>
+                <div class="table-responsive">
+                    <table class="cal-table">
+                        <thead>
+                            <tr>
+                                <th>Sen</th><th>Sel</th><th>Rab</th><th>Kam</th><th>Jum</th><th>Sab</th><th>Min</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendarBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <section class="card-panel">
+            <div class="table-header-control">
+                <h2 class="panel-title" style="margin: 0;">Daftar Rencana Kegiatan</h2>
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all">Semua</button>
+                    <button class="filter-btn" data-filter="pending">Tertunda</button>
+                    <button class="filter-btn" data-filter="completed">Selesai</button>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Cari nama kegiatan...">
+            </div>
+
+            <div class="table-wrap">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>Nama Kegiatan</th>
+                            <th>Tanggal</th>
+                            <th>Prioritas</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
