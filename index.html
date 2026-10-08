@@ -3,56 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibePlanner - Calendar & Task Manager</title>
+    <title>VibePlanner - Interactive Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <canvas id="confettiCanvas"></canvas>
+
     <div class="wrapper">
-        
         <header class="header-bar">
             <div class="brand-wrapper">
                 <div class="brand-icon"></div>
-                <h1 class="header-title">VibePlanner</h1>
+                <div>
+                    <h1 class="header-title">VibePlanner</h1>
+                    <div id="greetingText" class="header-subtitle">Selamat datang!</div>
+                </div>
             </div>
-            <div id="headerDate" class="header-date">Memuat tanggal...</div>
+            <div class="header-right">
+                <div id="liveClock" class="live-clock">00:00:00</div>
+                <div id="currentDateStr" class="live-date">Memuat tanggal...</div>
+            </div>
         </header>
 
         <section class="stat-grid">
-            <div class="stat-card teal">
+            <div class="stat-card teal" id="cardTotal" onclick="applyQuickFilter('all')" title="Klik untuk tampilkan semua">
                 <div class="stat-value" id="statTotal">0</div>
-                <div class="stat-label">Total kegiatan</div>
+                <div class="stat-label">Total kegiatan 👆</div>
             </div>
-            <div class="stat-card green">
+            <div class="stat-card green" id="cardCompleted" onclick="applyQuickFilter('completed')" title="Klik untuk filter selesai">
                 <div class="stat-value" id="statCompleted">0</div>
-                <div class="stat-label" id="statProgressLabel">Selesai (0%)</div>
+                <div class="stat-label" id="statProgressLabel">Selesai (0%) 👆</div>
                 <div class="progress-track">
                     <div class="progress-fill" id="progressBar"></div>
                 </div>
             </div>
-            <div class="stat-card orange">
+            <div class="stat-card orange" id="cardPending" onclick="applyQuickFilter('pending')" title="Klik untuk filter tertunda">
                 <div class="stat-value" id="statPending">0</div>
-                <div class="stat-label">Sedang berjalan / belum</div>
+                <div class="stat-label">Sedang berjalan / belum 👆</div>
             </div>
         </section>
-      
+
         <div class="content-grid">
             <section class="card-panel">
                 <h2 class="panel-title">Tambah Kegiatan Baru</h2>
                 <form id="addActivityForm">
                     <div class="form-group">
                         <label for="title">Nama Kegiatan</label>
-                        <input type="text" id="title" required placeholder="Contoh: Belajar Algoritma & Flowchart">
+                        <input type="text" id="title" required placeholder="Contoh: Diskusi Algoritma & Struktur Data">
                     </div>
+
                     <div class="form-group">
-                        <label for="date">Tanggal Kegiatan (Bisa klik tanggal di kalender)</label>
+                        <label for="date">Tanggal Kegiatan</label>
+                        <div class="quick-presets">
+                            <button type="button" class="preset-btn" onclick="setPresetDate(0)">Hari ini</button>
+                            <button type="button" class="preset-btn" onclick="setPresetDate(1)">Besok</button>
+                            <button type="button" class="preset-btn" onclick="setPresetDate(2)">Lusa</button>
+                        </div>
                         <input type="date" id="date" required>
                     </div>
+
                     <div class="form-group">
                         <label for="priority">Tingkat Prioritas</label>
                         <select id="priority">
-                            <option value="Low">Low</option>
-                            <option value="Medium" selected>Medium</option>
-                            <option value="High">High</option>
+                            <option value="Low">🟢 Low (Rendah)</option>
+                            <option value="Medium" selected>🟡 Medium (Sedang)</option>
+                            <option value="High">🔴 High (Mendesak)</option>
                         </select>
                     </div>
                     <button type="submit" class="btn-primary" id="btnSubmit">+ Simpan Kegiatan</button>
@@ -60,7 +74,11 @@
             </section>
 
             <section class="card-panel">
-                <h2 class="panel-title" id="calendarTitle">Kalender Bulanan</h2>
+                <div class="calendar-nav-header">
+                    <button class="nav-month-btn" onclick="changeMonth(-1)" title="Bulan Sebelumnya">◀</button>
+                    <h2 class="panel-title" id="calendarTitle" style="margin: 0;">Kalender</h2>
+                    <button class="nav-month-btn" onclick="changeMonth(1)" title="Bulan Berikutnya">▶</button>
+                </div>
                 <div class="table-responsive">
                     <table class="cal-table">
                         <thead>
@@ -72,6 +90,7 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="calendar-hint">💡 Klik sel tanggal untuk memilihnya di formulir kegiatan.</div>
             </section>
         </div>
 
@@ -79,14 +98,20 @@
             <div class="table-header-control">
                 <h2 class="panel-title" style="margin: 0;">Daftar Rencana Kegiatan</h2>
                 <div class="filter-group">
-                    <button class="filter-btn active" data-filter="all">Semua</button>
-                    <button class="filter-btn" data-filter="pending">Tertunda</button>
-                    <button class="filter-btn" data-filter="completed">Selesai</button>
+                    <button class="filter-btn active" data-filter="all" id="tabAll">Semua (<span id="countAll">0</span>)</button>
+                    <button class="filter-btn" data-filter="pending" id="tabPending">Tertunda (<span id="countPending">0</span>)</button>
+                    <button class="filter-btn" data-filter="completed" id="tabCompleted">Selesai (<span id="countCompleted">0</span>)</button>
                 </div>
             </div>
 
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Cari nama kegiatan...">
+            <div class="search-bar-row">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Cari nama kegiatan...">
+                <select id="priorityFilter" class="priority-select" onchange="renderTable()">
+                    <option value="all">Semua Prioritas</option>
+                    <option value="High">Hanya High</option>
+                    <option value="Medium">Hanya Medium</option>
+                    <option value="Low">Hanya Low</option>
+                </select>
             </div>
 
             <div class="table-wrap">
