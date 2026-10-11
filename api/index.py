@@ -5,13 +5,9 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.parse
 import os
 
-# ==============================================================================
-# 1. VARIABEL & DATA
-# ==============================================================================
 APP_NAME: str = "VibePlanner"
 PORT: int = int(os.environ.get("PORT", 8000))
 
-# Berkas penyimpanan permanen (menggunakan /tmp di lingkungan Vercel)
 STORAGE_FILE = "/tmp/activities_data.json" if os.environ.get("VERCEL") else "activities_data.json"
 
 DEFAULT_ACTIVITIES: list[dict] = [
@@ -38,11 +34,7 @@ DEFAULT_ACTIVITIES: list[dict] = [
     },
 ]
 
-# ==============================================================================
-# 2. FILE HANDLING (Penyimpanan Berkas JSON)
-# ==============================================================================
 def load_activities() -> list[dict]:
-    """Membaca data kegiatan dari berkas JSON."""
     if os.path.exists(STORAGE_FILE):
         try:
             with open(STORAGE_FILE, "r", encoding="utf-8") as f:
@@ -53,7 +45,6 @@ def load_activities() -> list[dict]:
 
 
 def save_activities(items: list[dict]) -> None:
-    """Menulis data kegiatan ke berkas JSON."""
     try:
         with open(STORAGE_FILE, "w", encoding="utf-8") as f:
             json.dump(items, f, ensure_ascii=False, indent=2)
@@ -63,9 +54,6 @@ def save_activities(items: list[dict]) -> None:
 
 activities: list[dict] = load_activities()
 
-# ==============================================================================
-# 3. LOGIKA & FUNCTIONS PYTHON
-# ==============================================================================
 def calculate_metrics(items: list[dict]) -> dict:
     total: int = len(items)
     if total == 0:
@@ -84,7 +72,6 @@ def calculate_metrics(items: list[dict]) -> dict:
 
 
 def generate_calendar_matrix(year: int, month: int) -> list[list[int]]:
-    """Membuat matriks Array 2D kalender."""
     cal = calendar.Calendar(firstweekday=0)
     return cal.monthdayscalendar(year, month)
 
@@ -116,10 +103,6 @@ def find_static_file(filename: str) -> str:
         return os.path.abspath(parent_path)
     return filename
 
-
-# ==============================================================================
-# 4. SERVERLESS REQUEST HANDLER
-# ==============================================================================
 class handler(BaseHTTPRequestHandler):
     def send_json(self, data: dict, status: int = 200):
         self.send_response(status)
@@ -144,7 +127,6 @@ class handler(BaseHTTPRequestHandler):
         clean_path = parsed_url.path
         query_params = urllib.parse.parse_qs(parsed_url.query)
 
-        # 1. API: Data & Kalender Bulanan
         if clean_path in ("/api/data", "/api/data/"):
             global activities
             activities = load_activities()
@@ -158,7 +140,6 @@ class handler(BaseHTTPRequestHandler):
             }
             self.send_json(payload)
 
-        # 2. File Statis untuk Pengujian Lokal
         elif clean_path in ("/", "/index.html"):
             self.serve_file("index.html", "text/html")
         elif clean_path == "/style.css":
@@ -183,7 +164,6 @@ class handler(BaseHTTPRequestHandler):
 
         global activities
 
-        # Endpoint Sinkronisasi Auto-Save
         if clean_path.endswith("/api/sync") or clean_path == "/sync":
             new_activities = data.get("activities", [])
             activities = new_activities
